@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.document import DocumentProcessRequest, DocumentProcessResponse
 from app.services.document_service import process_document, get_all_documents, list_chroma_files
@@ -16,7 +17,11 @@ async def process_document_endpoint(request: DocumentProcessRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error.")
 
-@router.get('/documents/list')
+from app.schemas.document import (
+    DocumentProcessRequest, DocumentProcessResponse, StoredDocumentInfo
+)
+
+@router.get('/documents/list', response_model=List[StoredDocumentInfo])
 async def list_documents_endpoint():
     try:
         return get_all_documents()

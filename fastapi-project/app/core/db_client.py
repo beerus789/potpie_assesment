@@ -21,6 +21,11 @@ class ChromaDBClient:
         self.client = chromadb.PersistentClient(path=persist_directory)
         self.collection = self.client.get_or_create_collection(collection_name)
 
+    def file_exists(self, file_name: str) -> bool:
+        # Query the collection for any chunks where the stored 'file_name' matches exactly
+        results = self.collection.get(where={"file_name": file_name}, include=["metadatas"])
+        return bool(results.get("metadatas"))
+
     def store(
         self,
         asset_id: str, 
@@ -48,7 +53,7 @@ class ChromaDBClient:
 
     def list_documents(self):
         # Retrieve all documents and their metadata from the collection
-        results = self.collection.get(include=["metadatas", "documents", "ids"])
+        results = self.collection.get(include=["metadatas", "documents"])
         print(results)
         print("-----------------------")
         return results

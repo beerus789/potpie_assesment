@@ -1,3 +1,4 @@
+from typing import List, Optional
 from pydantic import BaseModel
 
 class DocumentProcessRequest(BaseModel):
@@ -5,3 +6,15 @@ class DocumentProcessRequest(BaseModel):
 
 class DocumentProcessResponse(BaseModel):
     asset_id: str
+
+class DocumentChunkInfo(BaseModel):
+    chunk_id: str
+    chunk_idx: int
+
+class StoredDocumentInfo(BaseModel):
+    asset_id: str
+    file_name: str
+    file_type: str
+    file_size: int
+    created_at: str
+    chunks: List[DocumentChunkInfo]
