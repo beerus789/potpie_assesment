@@ -135,6 +135,14 @@ celery -A app.celery_app.celery_app worker --loglevel=info -Q docs --pool=thread
 - **Monitoring/metrics integration (Prometheus, Grafana, Sentry)**
 - **Better duplicate document detection (hashing, user namespace)**
 - **File upload support in UI**
+- **Malware/Corruption Detection:** Integrate file scanning to detect malware or corrupted documents before processing.
+- **File Preview & Metadata Extraction:** Allow users to preview documents and extract metadata (author, title, etc.) before ingestion.
+- **Advanced Search:** Implement semantic and keyword search across all ingested documents and chat histories.
+- **Analytics Dashboard:** Provide usage analytics, document statistics, and system health monitoring for admins.
+- **Multi-language Support:** Add support for document ingestion and chat in multiple languages, including translation features.
+- **Multi-Agent Support:** Enable multiple specialized agents (e.g., code expert, legal expert) that users can select or route queries to.
+- **Agent Collaboration:** Allow agents to collaborate or debate on complex queries, providing richer answers.
+- **Agent Assignment/Personalization:** Assign agents to users or threads for personalized assistance and context retention.
 
 ---
 
