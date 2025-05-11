@@ -8,17 +8,21 @@ from fastapi import APIRouter, HTTPException
 from app.schemas.document import DocumentProcessRequest, DocumentProcessResponse
 from app.document_tasks import process_document_task
 from celery.result import AsyncResult
+from app.limiter import limiter
+from fastapi import Request
 
 router = APIRouter()
 
 @router.post("/documents/process", response_model=DocumentProcessResponse)
-async def process_document_endpoint(request: DocumentProcessRequest):
-    task = process_document_task.delay(request.file_path)
+@limiter.limit("20/minute")
+async def process_document_endpoint(request:Request ,body: DocumentProcessRequest):
+    task = process_document_task.delay(body.file_path)
     # Return a response with task_id for async processing
     return {"task_id": task.id, "asset_id": None}
 
 @router.get("/documents/status/{task_id}")
-async def get_status(task_id: str):
+@limiter.limit("10/minute")
+async def get_status(request: Request, task_id: str):
     result = AsyncResult(task_id)
     if not result:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -31,7 +35,8 @@ from app.schemas.document import (
 )
 
 @router.get('/documents/list', response_model=List[StoredDocumentInfo])
-async def list_documents_endpoint():
+@limiter.limit("10/minute")
+async def list_documents_endpoint(request: Request):
     try:
         return get_all_documents()
     except Exception as e:
@@ -47,8 +52,9 @@ async def list_chroma_files_endpoint():
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 
 @router.post("/documents/process_folder")
-async def process_folder(request: DocumentProcessRequest):
-    folder_path = request.file_path
+@limiter.limit("10/minute")
+async def process_folder(request: Request, body: DocumentProcessRequest):
+    folder_path = body.file_path
     if not folder_path or not os.path.isdir(folder_path):
         raise HTTPException(status_code=400, detail="Invalid or missing folder path.")
     # Find all supported files, optionally recursively (use os.walk for recursive)

@@ -4,9 +4,14 @@ from app.api.endpoints.document import router as document_router
 from app.api.endpoints.chat import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
+# from app.limiter import limiter
 app = FastAPI()
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from app.limiter import limiter
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Allow all origins for local testing (change in production!)
 app.add_middleware(
     CORSMiddleware,

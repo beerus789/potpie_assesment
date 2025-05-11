@@ -6,6 +6,8 @@ from app.services.history import add_message, get_history
 from app.core.chroma import ChromaDBClient
 from app.core.rag_agent import RAGAgent
 import logging
+from app.limiter import limiter
+from fastapi import Request
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -13,7 +15,8 @@ rag_agent = RAGAgent()
 chroma_client = ChromaDBClient()
 
 @router.post("/chat/start", response_model=StartChatResponse)
-async def start_chat(req: StartChatRequest):
+@limiter.limit("5/minute")
+async def start_chat(request: Request, req: StartChatRequest):
     asset_id = req.asset_id
     if not asset_id:
         raise HTTPException(status_code=400, detail="Missing or invalid asset ID")
@@ -24,7 +27,8 @@ async def start_chat(req: StartChatRequest):
     return {"thread_id": thread_id}
 
 @router.post("/chat/message")
-async def send_message(req: SendMessageRequest):
+@limiter.limit("30/minute")
+async def send_message(request: Request, req: SendMessageRequest):
     thread_id = req.thread_id
     message = req.message
     if not thread_id or not message:
@@ -61,7 +65,8 @@ async def send_message(req: SendMessageRequest):
     return StreamingResponse(response_stream(), media_type="application/json")
 
 @router.get("/chat/history")
-async def chat_history(thread_id: str):
+@limiter.limit("3/minute")
+async def chat_history(request: Request, thread_id: str):
     if not thread_id:
         raise HTTPException(status_code=400, detail="Missing thread ID")
     try:
@@ -77,7 +82,8 @@ async def chat_history(thread_id: str):
 
 
 @router.get("/chat/threads")
-async def list_threads(asset_id: str = None):
+@limiter.limit("60/minute")
+async def list_threads(request: Request, asset_id: str = None):
     """
     List all chat threads. If asset_id is provided, filter threads for that asset only.
     Returns: List of {"thread_id": str, "asset_id": str, "created_at": str, "last_used": str}
