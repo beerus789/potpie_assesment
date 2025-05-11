@@ -54,6 +54,7 @@ class ChromaDBClient:
     def list_documents(self):
         # Retrieve all documents and their metadata from the collection
         results = self.collection.get(include=["metadatas", "documents"])
-        print(results)
+        # print(results)
+        print("existing documents in ChromaDB:")
         print("-----------------------")
         return results

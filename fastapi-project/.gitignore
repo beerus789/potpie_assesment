@@ -76,3 +76,5 @@ chromadb_client.log
 # Ignore requirements.txt lock files
 poetry.lock
 Pipfile.lock
+.json
+.env

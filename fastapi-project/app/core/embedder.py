@@ -1,17 +1,20 @@
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
+import torch
 
 class Embedder:
     def __init__(self, model_name="all-MiniLM-L6-v2", chunk_size=500, chunk_overlap=50):
-        self.model = SentenceTransformer(model_name)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = SentenceTransformer(model_name, device=device)
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
     def chunk_text(self, text: str) -> List[str]:
         words = text.split()
+        step = max(1, self.chunk_size - self.chunk_overlap)
         chunks = []
-        for i in range(0, len(words), self.chunk_size - self.chunk_overlap):
-            chunk = words[i:i+self.chunk_size]
+        for i in range(0, len(words), step):
+            chunk = words[i:i + self.chunk_size]
             chunks.append(' '.join(chunk))
         return [c for c in chunks if c.strip()]
 

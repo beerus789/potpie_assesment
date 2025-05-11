@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RAG Chatbot Streaming Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2em auto; }
+    .chat-log { border: 1px solid #ccc; padding: 1em; min-height: 200px; margin-bottom: 10px;}
+    .user { color: blue; }
+    .agent { color: green; }
+    .message { margin: 0.5em 0; }
+  </style>
+</head>
+<body>
+<h2>RAG Chatbot Streaming Test</h2>
+<form id="start-chat-form">
+  <label for="asset_id">Asset ID: </label>
+  <input type="text" id="asset_id" size="40" required>
+  <button type="submit">Start Chat</button>
+</form>
+
+<div id="chat" style="display:none;">
+  <div class="chat-log" id="chat-log"></div>
+  <form id="chat-form">
+    <input type="text" id="message" size="60" required autocomplete="off" placeholder="Type your question...">
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+let threadId = "";
+let assetId = "";
+
+function addChatItem(text, sender) {
+  const chatLog = document.getElementById('chat-log');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'message ' + sender;
+  msgDiv.innerHTML = (sender === 'user' ? "🧑 " : "🤖 ") + text;
+  chatLog.appendChild(msgDiv);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function clearChat() {
+  document.getElementById('chat-log').innerHTML = '';
+}
+
+document.getElementById('start-chat-form').onsubmit = async function(e) {
+  e.preventDefault();
+  assetId = document.getElementById('asset_id').value.trim();
+
+  if (!assetId) {
+    alert("Please enter an asset ID.");
+    return;
+  }
+
+  const res = await fetch("/api/chat/start", {
+    method: "POST",
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({asset_id: assetId})
+  });
+  if (!res.ok) {
+    alert("Error: " + (await res.text()));
+    return;
+  }
+  const data = await res.json();
+  threadId = data.thread_id;
+  clearChat();
+  document.getElementById('chat').style.display = '';
+}
+
+document.getElementById('chat-form').onsubmit = async function(e) {
+  e.preventDefault();
+  const input = document.getElementById('message');
+  const msg = input.value.trim();
+  if (!msg) return;
+  addChatItem(msg, "user");
+  input.value = "";
+
+  // Start streaming response
+  const chatLog = document.getElementById('chat-log');
+  const agentDiv = document.createElement('div');
+  agentDiv.className = 'message agent';
+  agentDiv.innerHTML = "🤖 ";
+  chatLog.appendChild(agentDiv);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  const res = await fetch("http://127.0.0.1:8000/api/chat/message", {
+    method: "POST",
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({thread_id: threadId, message: msg})
+  });
+  if (!res.body) {
+    agentDiv.innerHTML += "[Error: no response body]";
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let done = false, agentText = "";
+
+  while (!done) {
+    const {value, done: d} = await reader.read();
+    done = d;
+    if (value) {
+      const chunk = decoder.decode(value, {stream:true});
+      // The response is a stream of {"response":"..."}\n JSONs.
+      // We'll parse and show the growing answer.
+      console.log("Received chunk:", chunk);
+      try {
+        // Some chunks might be partial, so we split by newline.
+        chunk.split('\n').forEach(part => {
+          part = part.trim();
+          if (!part) return;
+          let json;
+          try { json = JSON.parse(part); }
+          catch { return; }
+          if (json && json.response !== undefined) {
+            agentText = json.response;
+            agentDiv.innerHTML = "🤖 " + agentText;
+          }
+        });
+      } catch (e) {
+        agentDiv.innerHTML += `[stream error: ${e}]`;
+      }
+    }
+  }
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+</script>
+</body>
+</html>
