@@ -5,7 +5,8 @@ class DocumentProcessRequest(BaseModel):
     file_path: str
 
 class DocumentProcessResponse(BaseModel):
-    asset_id: str
+    asset_id: Optional[str] = None
+    task_id: Optional[str] = None
 
 class DocumentChunkInfo(BaseModel):
     chunk_id: str

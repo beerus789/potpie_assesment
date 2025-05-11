@@ -1,9 +1,10 @@
+from asyncio.log import logger
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
 import torch
 
 class Embedder:
-    def __init__(self, model_name="all-MiniLM-L6-v2", chunk_size=500, chunk_overlap=50):
+    def __init__(self, model_name="all-MiniLM-L6-v2", chunk_size=2000, chunk_overlap=200):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = SentenceTransformer(model_name, device=device)
         self.chunk_size = chunk_size

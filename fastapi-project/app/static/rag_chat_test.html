@@ -105,7 +105,6 @@ document.getElementById('chat-form').onsubmit = async function(e) {
       const chunk = decoder.decode(value, {stream:true});
       // The response is a stream of {"response":"..."}\n JSONs.
       // We'll parse and show the growing answer.
-      console.log("Received chunk:", chunk);
       try {
         // Some chunks might be partial, so we split by newline.
         chunk.split('\n').forEach(part => {

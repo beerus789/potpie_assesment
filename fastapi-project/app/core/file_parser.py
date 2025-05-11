@@ -5,6 +5,47 @@ import logging
 
 logger = logging.getLogger("file-parser")
 
+
+import pdfplumber
+from docx import Document as DocxDocument
+
+def text_file_chunks(file_path, chunk_size_words=2000):
+    with open(file_path, "r", encoding="utf-8") as f:
+        buffer = []
+        for line in f:
+            words = line.split()
+            buffer.extend(words)
+            while len(buffer) >= chunk_size_words:
+                yield ' '.join(buffer[:chunk_size_words])
+                buffer = buffer[chunk_size_words:]
+        if buffer:
+            yield ' '.join(buffer)
+
+def pdf_file_chunks(file_path, chunk_size_words=2000):
+    with pdfplumber.open(file_path) as pdf:
+        buffer = []
+        for page in pdf.pages:
+            text = page.extract_text() or ""
+            words = text.split()
+            buffer.extend(words)
+            while len(buffer) >= chunk_size_words:
+                yield ' '.join(buffer[:chunk_size_words])
+                buffer = buffer[chunk_size_words:]
+        if buffer:
+            yield ' '.join(buffer)
+
+def docx_file_chunks(file_path, chunk_size_words=2000):
+    doc = DocxDocument(file_path)
+    buffer = []
+    for para in doc.paragraphs:
+        words = para.text.split()
+        buffer.extend(words)
+        while len(buffer) >= chunk_size_words:
+            yield ' '.join(buffer[:chunk_size_words])
+            buffer = buffer[chunk_size_words:]
+    if buffer:
+        yield ' '.join(buffer)
+
 class FileParser:
     SUPPORTED_FORMATS = {"pdf", "txt", "docx"}
 
@@ -32,6 +73,11 @@ class FileParser:
 
     @staticmethod
     def extract_text(file_path: str, ext: str) -> str:
+        """
+        Extracts text from a file based on its extension (pdf, docx, txt).
+        Raises RuntimeError on extraction failure.
+        """
+        # PDF extraction
         if ext == "pdf":
             try:
                 with pdfplumber.open(file_path) as pdf:
@@ -40,6 +86,7 @@ class FileParser:
             except Exception as e:
                 logger.error(f"PDF extraction error: {e}")
                 raise RuntimeError("Failed to extract text from PDF.")
+        # DOCX extraction
         elif ext == "docx":
             try:
                 doc = DocxDocument(file_path)
@@ -48,6 +95,7 @@ class FileParser:
             except Exception as e:
                 logger.error(f"DOCX extraction error: {e}")
                 raise RuntimeError("Failed to extract text from DOCX.")
+        # TXT extraction
         elif ext == "txt":
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
