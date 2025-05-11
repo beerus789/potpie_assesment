@@ -5,9 +5,8 @@ import logging
 
 logger = logging.getLogger("file-parser")
 
-
-import pdfplumber
-from docx import Document as DocxDocument
+# Helper: Chunk a text file into word-based chunks for efficient embedding
+# Yields one chunk at a time
 
 def text_file_chunks(file_path, chunk_size_words=2000):
     with open(file_path, "r", encoding="utf-8") as f:
@@ -16,10 +15,13 @@ def text_file_chunks(file_path, chunk_size_words=2000):
             words = line.split()
             buffer.extend(words)
             while len(buffer) >= chunk_size_words:
-                yield ' '.join(buffer[:chunk_size_words])
+                yield " ".join(buffer[:chunk_size_words])
                 buffer = buffer[chunk_size_words:]
         if buffer:
-            yield ' '.join(buffer)
+            yield " ".join(buffer)
+
+# Helper: Chunk a PDF file into word-based chunks
+# Yields one chunk at a time
 
 def pdf_file_chunks(file_path, chunk_size_words=2000):
     with pdfplumber.open(file_path) as pdf:
@@ -29,10 +31,13 @@ def pdf_file_chunks(file_path, chunk_size_words=2000):
             words = text.split()
             buffer.extend(words)
             while len(buffer) >= chunk_size_words:
-                yield ' '.join(buffer[:chunk_size_words])
+                yield " ".join(buffer[:chunk_size_words])
                 buffer = buffer[chunk_size_words:]
         if buffer:
-            yield ' '.join(buffer)
+            yield " ".join(buffer)
+
+# Helper: Chunk a DOCX file into word-based chunks
+# Yields one chunk at a time
 
 def docx_file_chunks(file_path, chunk_size_words=2000):
     doc = DocxDocument(file_path)
@@ -41,23 +46,27 @@ def docx_file_chunks(file_path, chunk_size_words=2000):
         words = para.text.split()
         buffer.extend(words)
         while len(buffer) >= chunk_size_words:
-            yield ' '.join(buffer[:chunk_size_words])
+            yield " ".join(buffer[:chunk_size_words])
             buffer = buffer[chunk_size_words:]
     if buffer:
-        yield ' '.join(buffer)
+        yield " ".join(buffer)
 
 class FileParser:
     SUPPORTED_FORMATS = {"pdf", "txt", "docx"}
 
     @staticmethod
     def validate_path(file_path: str):
+        """
+        Validate the file path for existence, type, and supported extension.
+        Returns normalized path and extension.
+        """
         if not file_path or not isinstance(file_path, str):
             raise ValueError("Missing or invalid file_path.")
 
         normalized = os.path.normpath(file_path)
         if not os.path.isabs(normalized):
             raise ValueError("File path must be absolute.")
-        if '..' in normalized.split(os.sep):
+        if ".." in normalized.split(os.sep):
             raise ValueError("Path traversal detected.")
 
         if not os.path.exists(normalized):
@@ -65,7 +74,7 @@ class FileParser:
         if not os.path.isfile(normalized):
             raise ValueError("Path is not a file.")
 
-        ext = os.path.splitext(normalized)[1].lower().replace('.', '')
+        ext = os.path.splitext(normalized)[1].lower().replace(".", "")
         if ext not in FileParser.SUPPORTED_FORMATS:
             raise ValueError(f"Unsupported file format: '{ext}'")
 

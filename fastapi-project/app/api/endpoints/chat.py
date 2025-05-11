@@ -1,7 +1,13 @@
+# FastAPI endpoints for chat functionality (start, message, history, threads)
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from app.models.chat import StartChatRequest, StartChatResponse, SendMessageRequest
-from app.services.chat_manager import update_last_used, validate_asset_id, create_chat_thread, get_asset_id_for_thread
+from app.services.chat_manager import (
+    update_last_used,
+    validate_asset_id,
+    create_chat_thread,
+    get_asset_id_for_thread,
+)
 from app.services.history import add_message, get_history
 from app.core.chroma import ChromaDBClient
 from app.core.rag_agent import RAGAgent
@@ -14,6 +20,7 @@ router = APIRouter()
 rag_agent = RAGAgent()
 chroma_client = ChromaDBClient()
 
+# Start a new chat thread for a given asset/document
 @router.post("/chat/start", response_model=StartChatResponse)
 @limiter.limit("5/minute")
 async def start_chat(request: Request, req: StartChatRequest):
@@ -26,6 +33,7 @@ async def start_chat(request: Request, req: StartChatRequest):
     thread_id = create_chat_thread(asset_id)
     return {"thread_id": thread_id}
 
+# Send a message to a chat thread and stream the agent's response
 @router.post("/chat/message")
 @limiter.limit("30/minute")
 async def send_message(request: Request, req: SendMessageRequest):
@@ -47,23 +55,28 @@ async def send_message(request: Request, req: SendMessageRequest):
     retriever = chroma_client.get_retriever(asset_id)
 
     async def response_stream():
-        logger.info(f"[STREAM] Starting streaming response for thread_id={thread_id}, asset_id={asset_id}")
+        logger.info(
+            f"[STREAM] Starting streaming response for thread_id={thread_id}, asset_id={asset_id}"
+        )
         answer = ""
         try:
             async for token in rag_agent.rag_answer_stream(retriever, message):
                 answer += token
                 logger.info(f"[STREAM] Yielding token: {token}")
-                yield f'{token}'
+                yield f"{token}"
             add_message(thread_id, answer, sender="agent")
             logger.info(f"[STREAM] Streaming complete for thread_id={thread_id}")
         except Exception as ex:
             logger.error(f"[STREAM] Streaming response error: {ex}")
             yield '{"response": "Agent error: problem generating answer."}\n'
         finally:
-            logger.info(f"[STREAM] Streaming response generator finished for thread_id={thread_id}")
+            logger.info(
+                f"[STREAM] Streaming response generator finished for thread_id={thread_id}"
+            )
 
     return StreamingResponse(response_stream(), media_type="application/json")
 
+# Get chat history for a thread
 @router.get("/chat/history")
 @limiter.limit("3/minute")
 async def chat_history(request: Request, thread_id: str):
@@ -80,7 +93,7 @@ async def chat_history(request: Request, thread_id: str):
         logger.error(f"Error loading history for thread {thread_id}: {e}")
         raise HTTPException(status_code=404, detail="Thread ID not found")
 
-
+# List all chat threads, optionally filtered by asset_id
 @router.get("/chat/threads")
 @limiter.limit("60/minute")
 async def list_threads(request: Request, asset_id: str = None):

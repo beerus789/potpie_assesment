@@ -9,10 +9,15 @@ from app.core.db_client import ChromaDBClient
 embedder = Embedder()
 chroma_client = ChromaDBClient()
 
+
 def process_document(file_path: str) -> str:
+    """
+    Process a document: validate, extract text, embed, and store in ChromaDB.
+    Returns the new asset_id.
+    """
     normalized_path, ext = FileParser.validate_path(file_path)
     file_name = os.path.basename(normalized_path)
-    # Check for duplicate file name.
+    # Check for duplicate file name in ChromaDB
     if chroma_client.file_exists(file_name):
         raise ValueError(f"Duplicate file name detected: {file_name}")
     text = FileParser.extract_text(normalized_path, ext)
@@ -21,17 +26,22 @@ def process_document(file_path: str) -> str:
         "file_name": file_name,
         "file_type": ext,
         "created_at": datetime.utcfromtimestamp(statinfo.st_ctime).isoformat() + "Z",
-        "file_size": statinfo.st_size
+        "file_size": statinfo.st_size,
     }
     embeddings, texts = embedder.embed(text)
     asset_id = str(uuid.uuid4())
     chroma_client.store(asset_id, embeddings, texts, metadata)
     return asset_id
 
+
 from app.schemas.document import StoredDocumentInfo, DocumentChunkInfo
 
+
 def get_all_documents():
-    # Get all entries from ChromaDB
+    """
+    Retrieve all documents and their chunks from ChromaDB, grouped by asset_id.
+    Returns a list of StoredDocumentInfo objects.
+    """
     results = chroma_client.list_documents()
     # Chroma returns {'ids': [...], 'metadatas': [...], ...}
     metadatas = results.get("metadatas", [])
@@ -50,19 +60,19 @@ def get_all_documents():
                 "file_type": m.get("file_type"),
                 "created_at": m.get("created_at"),
                 "file_size": m.get("file_size"),
-                "chunks": []
+                "chunks": [],
             }
         documents[asset_id]["chunks"].append(
-            DocumentChunkInfo(
-                chunk_id=doc_id,
-                chunk_idx=m.get("chunk_idx", -1)
-            )
+            DocumentChunkInfo(chunk_id=doc_id, chunk_idx=m.get("chunk_idx", -1))
         )
-
-    # Convert to list
+    # Convert to list of StoredDocumentInfo
     return [StoredDocumentInfo(**doc) for doc in documents.values()]
 
+
 def list_chroma_files():
+    """
+    List all files and directories in the ChromaDB persistent directory (for debugging/ops).
+    """
     chroma_dir = './chroma_migrated'
     if not os.path.exists(chroma_dir):
         return []

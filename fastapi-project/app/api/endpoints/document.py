@@ -1,25 +1,24 @@
+# FastAPI endpoints for document processing, status, listing, and folder ingestion
 import os
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from app.schemas.document import DocumentProcessRequest, DocumentProcessResponse
 from app.services.document_service import get_all_documents, list_chroma_files
-
-from fastapi import APIRouter, HTTPException
-from app.schemas.document import DocumentProcessRequest, DocumentProcessResponse
 from app.document_tasks import process_document_task
 from celery.result import AsyncResult
 from app.limiter import limiter
-from fastapi import Request
 
 router = APIRouter()
 
+# Endpoint to process a single document (async via Celery)
 @router.post("/documents/process", response_model=DocumentProcessResponse)
 @limiter.limit("20/minute")
-async def process_document_endpoint(request:Request ,body: DocumentProcessRequest):
+async def process_document_endpoint(request: Request, body: DocumentProcessRequest):
     task = process_document_task.delay(body.file_path)
     # Return a response with task_id for async processing
     return {"task_id": task.id, "asset_id": None}
 
+# Endpoint to check the status of a Celery document processing task
 @router.get("/documents/status/{task_id}")
 @limiter.limit("10/minute")
 async def get_status(request: Request, task_id: str):
@@ -31,26 +30,32 @@ async def get_status(request: Request, task_id: str):
     return {"status": result.status}
 
 from app.schemas.document import (
-    DocumentProcessRequest, DocumentProcessResponse, StoredDocumentInfo
+    DocumentProcessRequest,
+    DocumentProcessResponse,
+    StoredDocumentInfo,
 )
 
-@router.get('/documents/list', response_model=List[StoredDocumentInfo])
+# Endpoint to list all stored documents (from ChromaDB)
+@router.get("/documents/list", response_model=List[StoredDocumentInfo])
 @limiter.limit("10/minute")
 async def list_documents_endpoint(request: Request):
     try:
         return get_all_documents()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"{e}")
 
-@router.get('/chroma/files')
+# Endpoint to list raw ChromaDB files (for debugging/ops)
+@router.get("/chroma/files")
 async def list_chroma_files_endpoint():
     try:
         return list_chroma_files()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        raise HTTPException(status_code=500, detail=f"{e}")
+
+# Supported file extensions for folder ingestion
 SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 
+# Endpoint to process all supported files in a folder (async via Celery)
 @router.post("/documents/process_folder")
 @limiter.limit("10/minute")
 async def process_folder(request: Request, body: DocumentProcessRequest):
@@ -66,8 +71,10 @@ async def process_folder(request: Request, body: DocumentProcessRequest):
                 full_path = os.path.abspath(os.path.join(root, name))
                 all_files.append(full_path)
     if not all_files:
-        raise HTTPException(status_code=400, detail="No supported files found in folder.")
-    # Queue Celery tasks
+        raise HTTPException(
+            status_code=400, detail="No supported files found in folder."
+        )
+    # Queue Celery tasks for each file
     tasks = []
     for file_path in all_files:
         task = process_document_task.delay(file_path)

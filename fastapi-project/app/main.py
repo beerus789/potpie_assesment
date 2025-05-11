@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from app.api.endpoints.document import router as document_router
+
 # from app.api import api_router
 from app.api.endpoints.chat import router as chat_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 # from app.limiter import limiter
 app = FastAPI()
 from slowapi.errors import RateLimitExceeded

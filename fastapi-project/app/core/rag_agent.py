@@ -1,8 +1,9 @@
 import os
 from dotenv import load_dotenv
+
+# Load environment variables from .env file
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "")
-
 
 from langchain.chains import RetrievalQA
 from langchain_openai import ChatOpenAI
@@ -13,6 +14,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Custom system prompt for the RAG agent
 custom_prompt = """
 You are an intelligent assistant tasked with answering questions based on a provided document. The document may contain technical content (e.g., code, algorithms, technical specifications) or non-technical content (e.g., reports, manuals, general text). Use the following context from the document to answer the user’s question:
 
@@ -32,25 +34,20 @@ Instructions:
 Your Answer:
 """
 
-prompt = ChatPromptTemplate.from_messages([
-    ("system", custom_prompt),
-    ("human", "{question}")
-])
-
-# from langchain_openai import ChatOpenAI
-# llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
-# print(llm.invoke("Are you there?"))
-
+# LangChain prompt template for the QA chain
+prompt = ChatPromptTemplate.from_messages(
+    [("system", custom_prompt), ("human", "{question}")]
+)
 
 class RAGAgent:
     def __init__(self):
-        self.llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
-            temperature=0.2,
-            streaming=True
-        )
+        # Initialize the LLM with streaming enabled
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, streaming=True)
 
     def build_qa_chain(self, retriever):
+        """
+        Build a RetrievalQA chain using the provided retriever and the custom prompt.
+        """
         return RetrievalQA.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
@@ -59,6 +56,10 @@ class RAGAgent:
         )
 
     async def rag_answer_stream(self, retriever, question):
+        """
+        Asynchronously stream the answer tokens for a given question using the RAG chain.
+        Yields JSON-formatted response chunks for streaming to the frontend.
+        """
         logger.info(f"[RAG] Starting rag_answer_stream for question: {question}")
         chain = self.build_qa_chain(retriever)
         callback = AsyncIteratorCallbackHandler()
