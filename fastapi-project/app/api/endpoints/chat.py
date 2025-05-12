@@ -73,7 +73,6 @@ async def send_message(request: Request, req: SendMessageRequest):
             logger.info(
                 f"[STREAM] Streaming response generator finished for thread_id={thread_id}"
             )
-
     return StreamingResponse(response_stream(), media_type="application/json")
 
 # Get chat history for a thread
