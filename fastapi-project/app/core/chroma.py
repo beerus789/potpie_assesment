@@ -1,8 +1,8 @@
 import chromadb
 from chromadb.config import Settings
 from app.constant import DIRECTORY, FILE_SETTINGS, FileFormat
-from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 
 # ChromaDBClient provides an interface to ChromaDB for storing and retrieving document embeddings.
