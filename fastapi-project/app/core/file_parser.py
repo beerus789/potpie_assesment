@@ -2,11 +2,13 @@ import os
 import pdfplumber
 from docx import Document as DocxDocument
 import logging
+from app.constant import FileFormat, FileType
 
 logger = logging.getLogger("file-parser")
 
 # Helper: Chunk a text file into word-based chunks for efficient embedding
 # Yields one chunk at a time
+
 
 def text_file_chunks(file_path, chunk_size_words=2000):
     with open(file_path, "r", encoding="utf-8") as f:
@@ -20,8 +22,10 @@ def text_file_chunks(file_path, chunk_size_words=2000):
         if buffer:
             yield " ".join(buffer)
 
+
 # Helper: Chunk a PDF file into word-based chunks
 # Yields one chunk at a time
+
 
 def pdf_file_chunks(file_path, chunk_size_words=2000):
     with pdfplumber.open(file_path) as pdf:
@@ -36,8 +40,10 @@ def pdf_file_chunks(file_path, chunk_size_words=2000):
         if buffer:
             yield " ".join(buffer)
 
+
 # Helper: Chunk a DOCX file into word-based chunks
 # Yields one chunk at a time
+
 
 def docx_file_chunks(file_path, chunk_size_words=2000):
     doc = DocxDocument(file_path)
@@ -51,8 +57,9 @@ def docx_file_chunks(file_path, chunk_size_words=2000):
     if buffer:
         yield " ".join(buffer)
 
+
 class FileParser:
-    SUPPORTED_FORMATS = {"pdf", "txt", "docx"}
+    SUPPORTED_FORMATS = {FileType.PDF.value, FileType.TXT.value, FileType.DOCX.value}
 
     @staticmethod
     def validate_path(file_path: str):
@@ -87,7 +94,7 @@ class FileParser:
         Raises RuntimeError on extraction failure.
         """
         # PDF extraction
-        if ext == "pdf":
+        if ext == FileType.PDF.value:
             try:
                 with pdfplumber.open(file_path) as pdf:
                     texts = [page.extract_text() for page in pdf.pages]
@@ -96,7 +103,7 @@ class FileParser:
                 logger.error(f"PDF extraction error: {e}")
                 raise RuntimeError("Failed to extract text from PDF.")
         # DOCX extraction
-        elif ext == "docx":
+        elif ext == FileType.DOCX.value:
             try:
                 doc = DocxDocument(file_path)
                 texts = [p.text for p in doc.paragraphs]
@@ -105,7 +112,7 @@ class FileParser:
                 logger.error(f"DOCX extraction error: {e}")
                 raise RuntimeError("Failed to extract text from DOCX.")
         # TXT extraction
-        elif ext == "txt":
+        elif ext == FileType.TXT.value:
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     return f.read()

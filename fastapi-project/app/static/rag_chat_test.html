@@ -124,24 +124,8 @@
         done = d;
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
-          // The response is a stream of {"response":"..."}\n JSONs.
-          // We'll parse and show the growing answer.
-          try {
-            // Some chunks might be partial, so we split by newline.
-            chunk.split('\n').forEach(part => {
-              part = part.trim();
-              if (!part) return;
-              let json;
-              try { json = JSON.parse(part); }
-              catch { return; }
-              if (json && json.response !== undefined) {
-                agentText = json.response;
-                agentDiv.innerHTML = "🤖 " + agentText;
-              }
-            });
-          } catch (e) {
-            agentDiv.innerHTML += `[stream error: ${e}]`;
-          }
+          agentText += chunk;
+          agentDiv.innerHTML = "🤖 " + agentText;
         }
       }
       chatLog.scrollTop = chatLog.scrollHeight;

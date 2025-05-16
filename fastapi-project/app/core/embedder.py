@@ -1,13 +1,18 @@
 from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
 import torch
+from app.constant import FILE_SETTINGS
+
 
 class Embedder:
     def __init__(
-        self, model_name="all-MiniLM-L6-v2", chunk_size=2000, chunk_overlap=200
+        self,
+        model_name=FILE_SETTINGS.MODEL_NAME,
+        chunk_size=FILE_SETTINGS.CHUNK_SIZE_WORDS,
+        chunk_overlap=FILE_SETTINGS.CHUNK_OVERLAP,
     ):
         # Use GPU if available, else fallback to CPU
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = FILE_SETTINGS.CUDA if torch.cuda.is_available() else FILE_SETTINGS.CPU
         self.model = SentenceTransformer(model_name, device=device)
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap

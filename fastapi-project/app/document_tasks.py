@@ -12,6 +12,7 @@ from app.core.db_client import ChromaDBClient
 import os
 import uuid
 from datetime import datetime
+from app.constant import FileType, FileFormat, FILE_SETTINGS
 
 # Set up logger for Celery tasks
 logger = logging.getLogger("celery-task")
@@ -48,10 +49,10 @@ def process_document_task(self, file_path):
         # Gather file metadata for traceability and search
         statinfo = os.stat(normalized_path)
         metadata = {
-            "file_name": os.path.basename(normalized_path),
-            "file_type": ext,
-            "created_at": f"{datetime.utcfromtimestamp(statinfo.st_ctime).isoformat()}Z",
-            "file_size": statinfo.st_size,
+            FileFormat.FILE_NAME.value: os.path.basename(normalized_path),
+            FileFormat.FILE_TYPE.value: ext,
+            FileFormat.CREATED_AT.value: f"{datetime.utcfromtimestamp(statinfo.st_ctime).isoformat()}Z",
+            FileFormat.FILE_SIZE.value: statinfo.st_size,
         }
 
         # Generate a unique asset ID for this document
@@ -59,11 +60,11 @@ def process_document_task(self, file_path):
 
         # Map file extensions to their chunking functions
         chunkers = {
-            "pdf": file_parser.pdf_file_chunks,
-            "txt": file_parser.text_file_chunks,
-            "docx": file_parser.docx_file_chunks,
+            FileType.PDF.value: file_parser.pdf_file_chunks,
+            FileType.TXT.value: file_parser.text_file_chunks,
+            FileType.DOCX.value: file_parser.docx_file_chunks,
         }
-        chunk_size = 2000  # Number of words per chunk; adjust for your model
+        chunk_size = FILE_SETTINGS.CHUNK_SIZE_WORDS  # Number of words per chunk; adjust for your model
 
         chunks = []
         embeddings = []

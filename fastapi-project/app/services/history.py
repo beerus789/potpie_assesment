@@ -1,9 +1,10 @@
 import os, json
 from datetime import datetime
 from app.models.chat import ChatMessage
+from app.constant import DIRECTORY
 
 # Directory where chat histories are stored (one file per thread)
-_HISTORY_DIR = "chat_histories"
+_HISTORY_DIR = DIRECTORY.CHAT_HISTORIES.value
 os.makedirs(_HISTORY_DIR, exist_ok=True)
 
 

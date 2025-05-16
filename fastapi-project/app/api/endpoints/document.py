@@ -7,8 +7,10 @@ from app.services.document_service import get_all_documents, list_chroma_files
 from app.document_tasks import process_document_task
 from celery.result import AsyncResult
 from app.limiter import limiter
+from app.constant import FileFormat, FileExtension, FileStatus
 
 router = APIRouter()
+
 
 # Endpoint to process a single document (async via Celery)
 @router.post("/documents/process", response_model=DocumentProcessResponse)
@@ -16,7 +18,8 @@ router = APIRouter()
 async def process_document_endpoint(request: Request, body: DocumentProcessRequest):
     task = process_document_task.delay(body.file_path)
     # Return a response with task_id for async processing
-    return {"task_id": task.id, "asset_id": None}
+    return {FileFormat.TASK_ID.value: task.id, FileFormat.ASSET_ID.value: None}
+
 
 # Endpoint to check the status of a Celery document processing task
 @router.get("/documents/status/{task_id}")
@@ -25,15 +28,20 @@ async def get_status(request: Request, task_id: str):
     result = AsyncResult(task_id)
     if not result:
         raise HTTPException(status_code=404, detail="Task not found")
-    if result.status == "SUCCESS":
-        return {"status": result.status, "asset_id": result.result}
-    return {"status": result.status}
+    if result.status == FileStatus.SUCCESS.value:
+        return {
+            FileFormat.STATUS.value: result.status,
+            FileFormat.ASSET_ID.value: result.result,
+        }
+    return {FileFormat.STATUS.value: result.status}
+
 
 from app.schemas.document import (
     DocumentProcessRequest,
     DocumentProcessResponse,
     StoredDocumentInfo,
 )
+
 
 # Endpoint to list all stored documents (from ChromaDB)
 @router.get("/documents/list", response_model=List[StoredDocumentInfo])
@@ -44,6 +52,7 @@ async def list_documents_endpoint(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
 
+
 # Endpoint to list raw ChromaDB files (for debugging/ops)
 @router.get("/chroma/files")
 async def list_chroma_files_endpoint():
@@ -52,8 +61,14 @@ async def list_chroma_files_endpoint():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
 
+
 # Supported file extensions for folder ingestion
-SUPPORTED_EXTENSIONS = {".pdf", ".txt", ".docx"}
+SUPPORTED_EXTENSIONS = {
+    FileExtension.PDF.value,
+    FileExtension.TXT.value,
+    FileExtension.DOCX.value,
+}
+
 
 # Endpoint to process all supported files in a folder (async via Celery)
 @router.post("/documents/process_folder")
@@ -78,5 +93,7 @@ async def process_folder(request: Request, body: DocumentProcessRequest):
     tasks = []
     for file_path in all_files:
         task = process_document_task.delay(file_path)
-        tasks.append({"file": file_path, "task_id": task.id})
-    return {"tasks": tasks}
+        tasks.append(
+            {FileFormat.FILE.value: file_path, FileFormat.TASK_ID.value: task.id}
+        )
+    return {FileFormat.TASKS.value: tasks}

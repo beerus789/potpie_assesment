@@ -2,6 +2,7 @@ import chromadb
 from chromadb.config import Settings
 import logging
 from typing import Dict, List, Any
+from app.constant import DIRECTORY, FileFormat
 
 # Configure logging to write to a file and console
 logging.basicConfig(
@@ -12,10 +13,13 @@ logging.basicConfig(
 
 logger = logging.getLogger("chromadb-client")
 
+
 # ChromaDBClient provides an interface to ChromaDB for storing and retrieving document embeddings and metadata.
 class ChromaDBClient:
     def __init__(
-        self, persist_directory="./chroma_migrated", collection_name="documents"
+        self,
+        persist_directory=DIRECTORY.CHROMA_DIR.value,
+        collection_name=FileFormat.DOCUMENTS.value,
     ):
         # Use the new PersistentClient initialization as per Chroma migration docs
         self.client = chromadb.PersistentClient(path=persist_directory)
@@ -27,9 +31,10 @@ class ChromaDBClient:
         Returns True if found, else False.
         """
         results = self.collection.get(
-            where={"file_name": file_name}, include=["metadatas"]
+            where={FileFormat.FILE_NAME.value: file_name},
+            include=[FileFormat.METADATAS.value],
         )
-        return bool(results.get("metadatas"))
+        return bool(results.get(FileFormat.METADATAS.value))
 
     def store(
         self,
@@ -45,7 +50,9 @@ class ChromaDBClient:
         n = len(embeddings)
         ids = [f"{asset_id}_{i}" for i in range(n)]
         metadatas = [
-            metadata | {"chunk_idx": i, "asset_id": asset_id} for i in range(n)
+            metadata
+            | {FileFormat.CHUNK_IDX.value: i, FileFormat.ASSET_ID.value: asset_id}
+            for i in range(n)
         ]
         self.collection.add(
             embeddings=embeddings, documents=texts, metadatas=metadatas, ids=ids
@@ -56,7 +63,8 @@ class ChromaDBClient:
         """
         Retrieve all documents and their metadata from the collection.
         """
-        results = self.collection.get(include=["metadatas", "documents"])
+        results = self.collection.get(
+            include=[FileFormat.METADATAS.value, FileFormat.DOCUMENTS.value]
+        )
         print("existing documents in ChromaDB:")
-        print("-----------------------")
         return results

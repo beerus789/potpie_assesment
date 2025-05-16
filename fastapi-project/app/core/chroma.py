@@ -1,10 +1,16 @@
 import chromadb
 from chromadb.config import Settings
+from app.constant import DIRECTORY, FILE_SETTINGS, FileFormat
+from langchain.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceEmbeddings
+
 
 # ChromaDBClient provides an interface to ChromaDB for storing and retrieving document embeddings.
 class ChromaDBClient:
     def __init__(
-        self, persist_directory="./chroma_migrated", collection_name="documents"
+        self,
+        persist_directory=DIRECTORY.CHROMA_DIR.value,
+        collection_name=FileFormat.DOCUMENTS.value,
     ):
         # Initialize ChromaDB persistent client and collection
         self.client = chromadb.PersistentClient(path=persist_directory)
@@ -16,7 +22,7 @@ class ChromaDBClient:
         Returns True if found, else False.
         """
         results = self.collection.get(
-            where={"asset_id": asset_id}, include=["metadatas"]
+            where={FileFormat.ASSET_ID.value: asset_id}, include=[FileFormat.METADATAS.value]
         )
         return bool(results and results.get("metadatas"))
 
@@ -25,15 +31,19 @@ class ChromaDBClient:
         Return a retriever that only searches chunks matching the given asset_id.
         Uses LangChain's Chroma VectorStore wrapper for advanced retrieval.
         """
-        from langchain.vectorstores import Chroma
-        from langchain.embeddings import HuggingFaceEmbeddings
 
         # Set up the retriever that queries only chunks matching this asset_id
-        embedding_function = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        embedding_function = HuggingFaceEmbeddings(
+            model_name=FILE_SETTINGS.MODEL_NAME
+        )
         store = Chroma(
             client=self.client,
             collection_name=self.collection.name,
             embedding_function=embedding_function,
         )
-        retriever = store.as_retriever(search_kwargs={"filter": {"asset_id": asset_id}})
+        retriever = store.as_retriever(
+            search_kwargs={
+                FileFormat.FILTER.value: {FileFormat.ASSET_ID.value: asset_id}
+            }
+        )
         return retriever

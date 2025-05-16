@@ -2,12 +2,12 @@ import uuid
 from app.core.chroma import ChromaDBClient
 
 chroma_client = ChromaDBClient()
-
+from app.constant import DIRECTORY, FileFormat
 from datetime import datetime
 import os, json
 
 # Path to the thread-asset mapping JSON file
-_THREAD_DB = "thread_asset_map.json"
+_THREAD_DB = DIRECTORY.THREAD_ASSET_MAP.value
 
 
 def update_last_used(thread_id):
@@ -19,7 +19,7 @@ def update_last_used(thread_id):
     with open(_THREAD_DB, "r") as f:
         data = json.load(f)
     if thread_id in data:
-        data[thread_id]["last_used"] = datetime.utcnow().isoformat() + "Z"
+        data[thread_id][FileFormat.LAST_USED.value] = datetime.utcnow().isoformat() + "Z"
         with open(_THREAD_DB, "w") as f2:
             json.dump(data, f2)
 
@@ -43,7 +43,7 @@ def create_chat_thread(asset_id: str) -> str:
             data = json.load(f)
     else:
         data = {}
-    data[thread_id] = {"asset_id": asset_id, "created_at": now, "last_used": now}
+    data[thread_id] = {FileFormat.ASSET_ID.value: asset_id, FileFormat.CREATED_AT.value: now, FileFormat.LAST_USED.value: now}
     with open(_THREAD_DB, "w") as f:
         json.dump(data, f)
     return thread_id
@@ -59,7 +59,7 @@ def get_asset_id_for_thread(thread_id: str) -> str:
         data = json.load(f)
     entry = data.get(thread_id)
     if isinstance(entry, dict):
-        return entry.get("asset_id")
+        return entry.get(FileFormat.ASSET_ID.value)
     return entry  # fallback for old format
 
 
@@ -78,9 +78,9 @@ class ChatThreadDB:
             except Exception:
                 pass
         data[thread_id] = {
-            "asset_id": asset_id,
-            "created_at": now,
-            "last_used": now,
+            FileFormat.ASSET_ID.value: asset_id,
+            FileFormat.CREATED_AT.value: now,
+            FileFormat.LAST_USED.value: now,
         }
         with open(_THREAD_DB, "w") as f:
             json.dump(data, f)

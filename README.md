@@ -1,6 +1,6 @@
 # FastAPI RAG Chatbot Backend
 
-**Author:** Your Name Here
+**Author:** Satyam Prakash Srivastava
 
 ---
 
@@ -9,10 +9,10 @@ A robust, scalable backend for document-based Retrieval-Augmented Generation (RA
 
 ---
 
-## Features Implemented
-- **Document Ingestion:** PDF, DOCX, and TXT files supported
+## What the Project Can Handle Now
+- **Document Ingestion:** PDF, DOCX, and TXT files via API or folder
 - **Duplicate File Handling:** Prevents duplicate file names in ChromaDB
-- **Chunking & Embedding:** Efficient chunking (configurable size) and GPU/CPU auto-detection
+- **Chunking & Embedding:** Efficient, configurable chunking; GPU/CPU auto-detection
 - **ChromaDB Integration:** Vector storage and retrieval for RAG
 - **Celery Integration:** Async document processing for large files and folders
 - **Streaming Chat:** Real-time, token-by-token chat responses
@@ -21,6 +21,17 @@ A robust, scalable backend for document-based Retrieval-Augmented Generation (RA
 - **Logging:** Detailed logging for backend and Celery tasks
 - **Environment Config:** OpenAI API key and other secrets in `.env`
 - **Modern UI:** Simple, modern HTML/JS frontend for chat (see `app/static/rag_chat_test.html`)
+- **Multi-User/Thread:** Multiple users and chat threads supported
+
+---
+
+## .env File Setup
+When creating your `.env` file, add the following (replace with your actual keys/paths):
+
+```
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# Add any other secrets or config as needed
+```
 
 ---
 
@@ -75,26 +86,26 @@ fastapi-project/
 ### 1. Clone and Install
 ```sh
 # Clone the repo
-$ git clone <repository-url>
-$ cd fastapi-project
+git clone <repository-url>
+cd fastapi-project
 
 # Create and activate virtual environment (Windows)
-$ python -m venv venv1
-$ .\venv1\Scripts\activate
+python -m venv venv1
+.\venv1\Scripts\activate
 
 # Install dependencies
-$ pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment
-- Copy `.env.example` to `.env` and set your `OPENAI_API_KEY` and any other secrets.
+- Copy `.env.example` to `.env` and set your `OPENAI_API_KEY` and any other secrets as shown above.
 
 ### 3. Start ChromaDB (if needed)
 - ChromaDB is used as a vector store and will persist data in `chroma_migrated/`.
 
 ### 4. Run FastAPI Backend
 ```sh
-$ uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 ### 5. Run Celery Worker (Windows)
@@ -160,10 +171,12 @@ Satyam Prakash Srivastava
 
 ## Quick Start (Summary)
 1. Clone, create venv, install requirements
-2. Set up `.env` with your OpenAI API key.
-3. Open Two terminal and run 4t and 5th cmd seperately with sequencial.
-4. Start Celery: `celery -A app.celery_app.celery_app worker --loglevel=info -Q docs --pool=threads --concurrency=4`
-5. Start FastAPI: `uvicorn app.main:app --reload`
+2. Set up `.env` with your OpenAI API key and ChromaDB directory.
+3. Open two terminals and run steps 4 and 5 separately.
+4. Start Celery:  
+   `celery -A app.celery_app.celery_app worker --loglevel=info -Q docs --pool=threads --concurrency=4`
+5. Start FastAPI:  
+   `uvicorn app.main:app --reload`
 6. Open the UI at `http://localhost:8000/static/rag_chat_test.html` (for chatbot).
 7. You can create your own UI.
 
